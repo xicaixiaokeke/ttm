@@ -87,6 +87,14 @@ static int ttm_stats_seq_open(struct inode *inode, struct file *file)
     return single_open(file, ttm_stats_show, NULL);
 }
 
+/*
+   Fix 5.10 kernel proc_create the fourth parameter has 
+   been switched from file_operations to proc_ops
+   proc_create(const char *name, umode_t mode,
+				   struct proc_dir_entry *parent,
+				   const struct proc_ops *proc_ops)
+*/
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,6,0)
 static const struct file_operations ttm_stats_fops = {
     .owner = THIS_MODULE,
     .open = ttm_stats_seq_open,
@@ -94,6 +102,14 @@ static const struct file_operations ttm_stats_fops = {
     .llseek = seq_lseek,
     .release = single_release,
 };
+#else
+static const struct proc_ops ttm_stats_fops = {
+    .proc_open = ttm_stats_seq_open,
+    .proc_read = seq_read,
+    .proc_lseek = seq_lseek,
+    .proc_release = single_release,
+};
+#endif
 
 /* @brief Parse TCP options in skb, try to get client ip, port
           NOTE: due to historical issue, byte order of some option is different,
